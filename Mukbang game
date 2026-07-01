@@ -1,0 +1,579 @@
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+
+local CLICK_ID = "rbxassetid://87437544236708"
+local HOVER_ID = "rbxassetid://139800881181209"
+local MINIMIZE_ID = "rbxassetid://138964902446275"
+
+-- Modern glassmorphism frame
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0, 320, 0, 400)
+Frame.Position = UDim2.new(0.05, 0, 0.35, 0)
+Frame.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
+Frame.BackgroundTransparency = 0.15
+Frame.BorderSizePixel = 0
+Frame.Active = true
+Frame.Draggable = true
+Frame.ClipsDescendants = true
+
+local ScreenGui = Instance.new("ScreenGui", PlayerGui)
+ScreenGui.Name = "UltimateEaterGUI"
+ScreenGui.ResetOnSpawn = false
+Frame.Parent = ScreenGui
+
+Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 20)
+
+-- Glassmorphism stroke
+local UIStroke = Instance.new("UIStroke", Frame)
+UIStroke.Color = Color3.fromRGB(100, 150, 255)
+UIStroke.Thickness = 1.5
+UIStroke.Transparency = 0.3
+
+-- Subtle shadow
+local Shadow = Instance.new("ImageLabel", Frame)
+Shadow.Name = "Shadow"
+Shadow.Size = UDim2.new(1, 40, 1, 40)
+Shadow.Position = UDim2.new(0, -20, 0, -20)
+Shadow.BackgroundTransparency = 1
+Shadow.Image = "rbxassetid://2977743004"
+Shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+Shadow.ImageTransparency = 0.6
+Shadow.ScaleType = Enum.ScaleType.Slice
+Shadow.SliceCenter = Rect.new(20, 20, 280, 280)
+Shadow.ZIndex = -1
+
+-- Modern header with gradient
+local HeaderBG = Instance.new("Frame", Frame)
+HeaderBG.Size = UDim2.new(1, 0, 0, 50)
+HeaderBG.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
+HeaderBG.BorderSizePixel = 0
+HeaderBG.ZIndex = 2
+Instance.new("UICorner", HeaderBG).CornerRadius = UDim.new(0, 20)
+
+-- Bottom corner fix for header
+local HeaderFix = Instance.new("Frame", HeaderBG)
+HeaderFix.Size = UDim2.new(1, 0, 0, 20)
+HeaderFix.Position = UDim2.new(0, 0, 1, -20)
+HeaderFix.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
+HeaderFix.BorderSizePixel = 0
+HeaderFix.ZIndex = 2
+
+local HeaderGradient = Instance.new("UIGradient", HeaderBG)
+HeaderGradient.Color = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(80, 120, 255)),
+	ColorSequenceKeypoint.new(0.5, Color3.fromRGB(140, 100, 255)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 200, 255))
+})
+HeaderGradient.Rotation = 45
+
+-- Animated title with glow
+local Title = Instance.new("TextLabel", HeaderBG)
+Title.Size = UDim2.new(0.7, 0, 1, 0)
+Title.Position = UDim2.new(0.05, 0, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "✨ GEMINI CHOMP HUD ✨"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 14
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Font = Enum.Font.GothamBold
+Title.ZIndex = 3
+
+local TitleGlow = Instance.new("TextLabel", HeaderBG)
+TitleGlow.Size = Title.Size
+TitleGlow.Position = Title.Position
+TitleGlow.BackgroundTransparency = 1
+TitleGlow.Text = Title.Text
+TitleGlow.TextColor3 = Color3.fromRGB(100, 180, 255)
+TitleGlow.TextSize = 14
+TitleGlow.TextXAlignment = Enum.TextXAlignment.Left
+TitleGlow.Font = Enum.Font.GothamBold
+TitleGlow.TextTransparency = 0.85
+TitleGlow.ZIndex = 2
+
+-- Content area
+local ContentFrame = Instance.new("Frame", Frame)
+ContentFrame.Size = UDim2.new(1, -20, 1, -60)
+ContentFrame.Position = UDim2.new(0, 10, 0, 55)
+ContentFrame.BackgroundTransparency = 1
+ContentFrame.ClipsDescendants = true
+
+-- Info banner (modern toast style)
+local InfoBanner = Instance.new("Frame", Frame)
+InfoBanner.Size = UDim2.new(0.9, 0, 0, 40)
+InfoBanner.Position = UDim2.new(0.05, 0, 1, 10)
+InfoBanner.BackgroundColor3 = Color3.fromRGB(20, 25, 45)
+InfoBanner.BackgroundTransparency = 0.1
+InfoBanner.BorderSizePixel = 0
+InfoBanner.Visible = false
+InfoBanner.ZIndex = 10
+Instance.new("UICorner", InfoBanner).CornerRadius = UDim.new(0, 12)
+local InfoStroke = Instance.new("UIStroke", InfoBanner)
+InfoStroke.Color = Color3.fromRGB(0, 191, 255)
+InfoStroke.Thickness = 1.5
+InfoStroke.Transparency = 0.5
+
+local InfoText = Instance.new("TextLabel", InfoBanner)
+InfoText.Size = UDim2.new(1, -20, 1, 0)
+InfoText.Position = UDim2.new(0, 10, 0, 0)
+InfoText.BackgroundTransparency = 1
+InfoText.TextColor3 = Color3.fromRGB(230, 240, 255)
+InfoText.TextSize = 11
+InfoText.Font = Enum.Font.GothamMedium
+InfoText.TextWrapped = true
+InfoText.TextXAlignment = Enum.TextXAlignment.Left
+InfoText.ZIndex = 11
+
+-- Warning banner (for 0-second delay)
+local WarningBanner = Instance.new("Frame", Frame)
+WarningBanner.Size = UDim2.new(0.9, 0, 0, 50)
+WarningBanner.Position = UDim2.new(0.05, 0, 1, 10)
+WarningBanner.BackgroundColor3 = Color3.fromRGB(45, 20, 20)
+WarningBanner.BackgroundTransparency = 0.1
+WarningBanner.BorderSizePixel = 0
+WarningBanner.Visible = false
+WarningBanner.ZIndex = 10
+Instance.new("UICorner", WarningBanner).CornerRadius = UDim.new(0, 12)
+local WarningStroke = Instance.new("UIStroke", WarningBanner)
+WarningStroke.Color = Color3.fromRGB(255, 80, 80)
+WarningStroke.Thickness = 2
+WarningStroke.Transparency = 0.4
+
+local WarningText = Instance.new("TextLabel", WarningBanner)
+WarningText.Size = UDim2.new(1, -20, 1, 0)
+WarningText.Position = UDim2.new(0, 10, 0, 0)
+WarningText.BackgroundTransparency = 1
+WarningText.TextColor3 = Color3.fromRGB(255, 180, 180)
+WarningText.TextSize = 11
+WarningText.Font = Enum.Font.GothamBold
+WarningText.TextWrapped = true
+WarningText.TextXAlignment = Enum.TextXAlignment.Center
+WarningText.Text = "⚠️ WARNING: 0s delay may break tools and not give food points!"
+WarningText.ZIndex = 11
+
+-- Credits banner
+local CreditsBanner = Instance.new("TextLabel", Frame)
+CreditsBanner.Size = UDim2.new(0.9, 0, 0, 32)
+CreditsBanner.Position = UDim2.new(0.05, 0, 1, 10)
+CreditsBanner.BackgroundColor3 = Color3.fromRGB(20, 25, 45)
+CreditsBanner.BackgroundTransparency = 0.2
+CreditsBanner.TextColor3 = Color3.fromRGB(255, 255, 255)
+CreditsBanner.TextSize = 12
+CreditsBanner.Font = Enum.Font.GothamBold
+CreditsBanner.Text = "Made by Gemini 🌟"
+CreditsBanner.Visible = false
+CreditsBanner.ZIndex = 10
+Instance.new("UICorner", CreditsBanner).CornerRadius = UDim.new(0, 10)
+local CreditsStroke = Instance.new("UIStroke", CreditsBanner)
+CreditsStroke.Color = Color3.fromRGB(147, 112, 219)
+CreditsStroke.Thickness = 1.5
+CreditsStroke.Transparency = 0.5
+
+local CreditsGradient = Instance.new("UIGradient", CreditsBanner)
+CreditsGradient.Color = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(80, 120, 255)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 200, 255))
+})
+CreditsGradient.Rotation = 90
+
+local currentInfoThread = nil
+local currentWarningThread = nil
+
+local function showBanner(banner, textLabel, text, duration)
+	if banner == InfoBanner and currentInfoThread then task.cancel(currentInfoThread) end
+	if banner == WarningBanner and currentWarningThread then task.cancel(currentWarningThread) end
+
+	if textLabel then textLabel.Text = text end
+	banner.Visible = true
+	banner.Position = UDim2.new(0.05, 0, 1, 10)
+
+	TweenService:Create(banner, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+		Position = UDim2.new(0.05, 0, 1, -55)
+	}):Play()
+
+	local thread = task.delay(duration or 10, function()
+		local closeTween = TweenService:Create(banner, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {
+			Position = UDim2.new(0.05, 0, 1, 10)
+		})
+		closeTween:Play()
+		closeTween.Completed:Wait()
+		banner.Visible = false
+	end)
+
+	if banner == InfoBanner then currentInfoThread = thread end
+	if banner == WarningBanner then currentWarningThread = thread end
+end
+
+local function showExplanation(text)
+	showBanner(InfoBanner, InfoText, text, 10)
+end
+
+local function showWarning(text)
+	showBanner(WarningBanner, WarningText, text or WarningText.Text, 8)
+end
+
+task.spawn(function()
+	task.wait(0.5)
+	CreditsBanner.Visible = true
+	TweenService:Create(CreditsBanner, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+		Position = UDim2.new(0.05, 0, 1, -95)
+	}):Play()
+	task.wait(10)
+	local closeTween = TweenService:Create(CreditsBanner, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {
+		Position = UDim2.new(0.05, 0, 1, 10)
+	})
+	closeTween:Play()
+	closeTween.Completed:Wait()
+	CreditsBanner.Visible = false
+end)
+
+-- Sound effects
+local function attachSFX(instance, soundId, vol)
+	local Sound = Instance.new("Sound", instance)
+	Sound.SoundId = soundId
+	Sound.Volume = vol or 0.5
+	return Sound
+end
+
+local GlobalClick = attachSFX(Frame, CLICK_ID, 0.5)
+local GlobalHover = attachSFX(Frame, HOVER_ID, 0.3)
+local MinSound = attachSFX(Frame, MINIMIZE_ID, 0.6)
+
+local function applyButtonSounds(btn)
+	btn.MouseButton1Down:Connect(function() GlobalClick:Play() end)
+	btn.MouseEnter:Connect(function() GlobalHover:Play() end)
+end
+
+-- Modern minimize button
+local MinBtn = Instance.new("TextButton", HeaderBG)
+MinBtn.Size = UDim2.new(0, 32, 0, 32)
+MinBtn.Position = UDim2.new(0.95, -32, 0.5, -16)
+MinBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 55)
+MinBtn.BackgroundTransparency = 0.3
+MinBtn.TextColor3 = Color3.fromRGB(220, 230, 255)
+MinBtn.Text = "−"
+MinBtn.TextSize = 20
+MinBtn.Font = Enum.Font.GothamBold
+MinBtn.ZIndex = 3
+Instance.new("UICorner", MinBtn).CornerRadius = UDim.new(0, 10)
+local MinBtnStroke = Instance.new("UIStroke", MinBtn)
+MinBtnStroke.Color = Color3.fromRGB(80, 100, 180)
+MinBtnStroke.Thickness = 1
+MinBtnStroke.Transparency = 0.5
+applyButtonSounds(MinBtn)
+
+-- State variables
+local autoEatEnabled = false
+local masterEaterEnabled = false
+local chompOnceEnabled = false
+local advancedOneChompEnabled = false
+local isMinimized = false
+local chompDelay = 0.01 -- DEFAULT: 0.01 seconds
+
+-- Modern toggle button creation
+local function createToggle(name, position, text)
+	local Button = Instance.new("TextButton", ContentFrame)
+	Button.Name = name
+	Button.Size = UDim2.new(0.9, 0, 0, 46)
+	Button.Position = position
+	Button.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
+	Button.BackgroundTransparency = 0.2
+	Button.TextColor3 = Color3.fromRGB(180, 200, 240)
+	Button.TextSize = 13
+	Button.Font = Enum.Font.GothamBold
+	Button.Text = text .. " [OFF]"
+	Button.AutoButtonColor = false
+
+	Instance.new("UICorner", Button).CornerRadius = UDim.new(0, 12)
+	local btnStroke = Instance.new("UIStroke", Button)
+	btnStroke.Color = Color3.fromRGB(50, 60, 100)
+	btnStroke.Thickness = 1.5
+	btnStroke.Transparency = 0.6
+
+	-- Hover effect
+	local HoverGlow = Instance.new("Frame", Button)
+	HoverGlow.Name = "HoverGlow"
+	HoverGlow.Size = UDim2.new(1, 0, 1, 0)
+	HoverGlow.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
+	HoverGlow.BackgroundTransparency = 1
+	HoverGlow.ZIndex = 0
+	Instance.new("UICorner", HoverGlow).CornerRadius = UDim.new(0, 12)
+
+	Button.MouseEnter:Connect(function()
+		TweenService:Create(HoverGlow, TweenInfo.new(0.2), {BackgroundTransparency = 0.92}):Play()
+		TweenService:Create(btnStroke, TweenInfo.new(0.2), {Transparency = 0.3}):Play()
+	end)
+	Button.MouseLeave:Connect(function()
+		TweenService:Create(HoverGlow, TweenInfo.new(0.2), {BackgroundTransparency = 1}):Play()
+		TweenService:Create(btnStroke, TweenInfo.new(0.2), {Transparency = 0.6}):Play()
+	end)
+
+	applyButtonSounds(Button)
+	return Button, btnStroke
+end
+
+-- Modern slider
+local SliderContainer = Instance.new("Frame", ContentFrame)
+SliderContainer.Name = "SliderContainer"
+SliderContainer.Size = UDim2.new(0.9, 0, 0, 50)
+SliderContainer.Position = UDim2.new(0.05, 0, 0.40, 0)
+SliderContainer.BackgroundTransparency = 1
+
+local SliderLabel = Instance.new("TextLabel", SliderContainer)
+SliderLabel.Size = UDim2.new(1, 0, 0, 18)
+SliderLabel.BackgroundTransparency = 1
+SliderLabel.Font = Enum.Font.GothamBold
+SliderLabel.TextSize = 12
+SliderLabel.TextColor3 = Color3.fromRGB(180, 200, 240)
+SliderLabel.TextXAlignment = Enum.TextXAlignment.Left
+SliderLabel.Text = "1 Chomp Delay: 0.01s"
+
+local SliderTrack = Instance.new("TextButton", SliderContainer)
+SliderTrack.Size = UDim2.new(1, 0, 0, 12)
+SliderTrack.Position = UDim2.new(0, 0, 0.65, 0)
+SliderTrack.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
+SliderTrack.BorderSizePixel = 0
+SliderTrack.Text = ""
+SliderTrack.AutoButtonColor = false
+Instance.new("UICorner", SliderTrack).CornerRadius = UDim.new(0, 6)
+
+local SliderFill = Instance.new("Frame", SliderTrack)
+SliderFill.Size = UDim2.new(0.002, 0, 1, 0) -- Default at 0.01s (0.002 / 5 = 0.0004... wait, let me recalculate)
+SliderFill.BackgroundColor3 = Color3.fromRGB(140, 100, 255)
+SliderFill.BorderSizePixel = 0
+Instance.new("UICorner", SliderFill).CornerRadius = UDim.new(0, 6)
+
+local SliderBtn = Instance.new("Frame", SliderTrack)
+SliderBtn.Size = UDim2.new(0, 18, 0, 18)
+SliderBtn.AnchorPoint = Vector2.new(0.5, 0.5)
+SliderBtn.Position = UDim2.new(0.002, 0, 0.5, 0) -- Default position
+SliderBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Instance.new("UICorner", SliderBtn).CornerRadius = UDim.new(1, 0)
+
+local SliderStroke = Instance.new("UIStroke", SliderBtn)
+SliderStroke.Color = Color3.fromRGB(140, 100, 255)
+SliderStroke.Thickness = 2.5
+
+-- Glow effect for slider button
+local SliderGlow = Instance.new("Frame", SliderBtn)
+SliderGlow.Size = UDim2.new(1.5, 0, 1.5, 0)
+SliderGlow.Position = UDim2.new(-0.25, 0, -0.25, 0)
+SliderGlow.BackgroundColor3 = Color3.fromRGB(140, 100, 255)
+SliderGlow.BackgroundTransparency = 0.9
+SliderGlow.ZIndex = 0
+Instance.new("UICorner", SliderGlow).CornerRadius = UDim.new(1, 0)
+
+local AdvOneChompBtn, AdvOneChompStroke = createToggle("AdvancedOneChomp", UDim2.new(0.05, 0, 0.58, 0), "Advanced 1 Chomp")
+local MasterEaterBtn, MasterEaterStroke = createToggle("MasterEater", UDim2.new(0.05, 0, 0.76, 0), "Master Eater")
+local AutoEatBtn, AutoEatStroke = createToggle("AutoEat", UDim2.new(0.05, 0, 0.04, 0), "Auto Eat")
+local OneChompBtn, OneChompStroke = createToggle("OneChomp", UDim2.new(0.05, 0, 0.22, 0), "1 Chomp")
+
+local dragging = false
+
+local function updateSliderPosition(inputPosition)
+	local trackWidth = SliderTrack.AbsoluteSize.X
+	local trackOriginX = SliderTrack.AbsolutePosition.X
+	local relativeX = math.clamp(inputPosition.X - trackOriginX, 0, trackWidth)
+	local percentage = relativeX / trackWidth
+
+	SliderBtn.Position = UDim2.new(percentage, 0, 0.5, 0)
+	SliderFill.Size = UDim2.new(percentage, 0, 1, 0)
+
+	chompDelay = percentage * 5
+	SliderLabel.Text = string.format("1 Chomp Delay: %.2fs", chompDelay)
+
+	-- Show warning when delay is 0
+	if chompDelay == 0 then
+		showWarning()
+	end
+end
+
+SliderTrack.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		updateSliderPosition(input.Position)
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+		updateSliderPosition(input.Position)
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = false
+	end
+end)
+
+-- Minimize functionality
+MinBtn.MouseButton1Click:Connect(function()
+	isMinimized = not isMinimized
+	if isMinimized then
+		MinSound.PlaybackSpeed = 1
+		MinSound:Play()
+		MinBtn.Text = "+"
+		ContentFrame.Visible = false
+		TweenService:Create(Frame, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+			Size = UDim2.new(0, 320, 0, 50)
+		}):Play()
+	else
+		MinSound.PlaybackSpeed = 0.75
+		MinSound:Play()
+		MinBtn.Text = "−"
+		TweenService:Create(Frame, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+			Size = UDim2.new(0, 320, 0, 400)
+		}):Play()
+		task.wait(0.15)
+		ContentFrame.Visible = true
+	end
+end)
+
+-- Toggle helper functions
+local function turnOffAutoEat()
+	autoEatEnabled = false
+	AutoEatBtn.Text = "Auto Eat [OFF]"
+	AutoEatBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
+	AutoEatStroke.Color = Color3.fromRGB(50, 60, 100)
+end
+
+local function turnOff1Chomp()
+	chompOnceEnabled = false
+	OneChompBtn.Text = "1 Chomp [OFF]"
+	OneChompBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
+	OneChompStroke.Color = Color3.fromRGB(50, 60, 100)
+
+	if advancedOneChompEnabled then
+		advancedOneChompEnabled = false
+		AdvOneChompBtn.Text = "Advanced 1 Chomp [OFF]"
+		AdvOneChompBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
+		AdvOneChompStroke.Color = Color3.fromRGB(50, 60, 100)
+	end
+end
+
+-- Auto Eat loop
+task.spawn(function()
+	while true do
+		task.wait(0.1)
+		if autoEatEnabled then
+			local backpack = LocalPlayer:FindFirstChildOfClass("Backpack")
+			local character = LocalPlayer.Character
+			if backpack and character then
+				local tools = backpack:GetChildren()
+				if #tools == 0 and not character:FindFirstChildOfClass("Tool") then
+					turnOffAutoEat()
+					showExplanation("⚠️ Auto Eat turned off: Your inventory is fully digested!")
+				elseif #tools > 0 and not character:FindFirstChildOfClass("Tool") then
+					local randomTool = tools[math.random(1, #tools)]
+					if randomTool:IsA("Tool") then
+						randomTool.Parent = character
+						while randomTool.Parent == character and autoEatEnabled do
+							local success = pcall(function()
+								randomTool:Activate()
+							end)
+							if not success then break end
+							task.wait(0.05)
+						end
+					end
+				end
+			end
+		end
+	end
+end)
+
+-- 1 Chomp loop
+task.spawn(function()
+	local lastItemName = ""
+	local lastItemInstance = nil
+	local lastSelectionTime = 0
+
+	while true do
+		RunService.Heartbeat:Wait()
+		if chompOnceEnabled then
+			local backpack = LocalPlayer:FindFirstChildOfClass("Backpack")
+			local character = LocalPlayer.Character
+			if backpack and character then
+				local tools = backpack:GetChildren()
+				if #tools == 0 and not character:FindFirstChildOfClass("Tool") then
+					turnOff1Chomp()
+					showExplanation("⚠️ 1 Chomp turned off: No items remaining inside backpack!")
+				elseif #tools > 0 and not character:FindFirstChildOfClass("Tool") then
+					local validTools = {}
+					local currentTime = os.clock()
+
+					for _, tool in ipairs(tools) do
+						if tool:IsA("Tool") then
+							if advancedOneChompEnabled then
+								if tool ~= lastItemInstance and tool.Name ~= lastItemName then
+									table.insert(validTools, tool)
+								end
+							else
+								if #tools == 1 or tool.Name ~= lastItemName or (currentTime - lastSelectionTime) >= 1 then
+									table.insert(validTools, tool)
+								end
+							end
+						end
+					end
+
+					if #validTools == 0 then validTools = tools end
+
+					local randomTool = validTools[math.random(1, #validTools)]
+					lastItemInstance = randomTool
+					lastItemName = randomTool.Name
+					lastSelectionTime = currentTime
+
+					randomTool.Parent = character
+					local success = pcall(function()
+						randomTool:Activate()
+					end)
+
+					local elapsed = 0
+					while elapsed < chompDelay and chompOnceEnabled do
+						elapsed = elapsed + RunService.Heartbeat:Wait()
+					end
+
+					if randomTool.Parent == character then
+						pcall(function()
+							randomTool.Parent = backpack
+						end)
+					end
+				end
+			end
+		end
+	end
+end)
+
+-- Master Eater
+RunService.RenderStepped:Connect(function()
+	if masterEaterEnabled then
+		local character = LocalPlayer.Character
+		local holdingTool = character and character:FindFirstChildOfClass("Tool")
+		if holdingTool then
+			pcall(function()
+				holdingTool:Activate()
+			end)
+		end
+	end
+end)
+
+-- Button click handlers
+AutoEatBtn.MouseButton1Click:Connect(function()
+	if chompOnceEnabled then turnOff1Chomp() end
+	autoEatEnabled = not autoEatEnabled
+	if autoEatEnabled then
+		AutoEatBtn.Text = "Auto Eat [ON]"
+		AutoEatBtn.BackgroundColor3 = Color3.fromRGB(65, 105, 225)
+		AutoEatStroke.Color = Color3.fromRGB(0, 191, 255)
+		showExplanation("🍽️ Auto Eat: Cyclically selects random inventory tools and eats until completely empty!")
+	else
+		turnOffAutoEat()
+	end
+end)
+
+OneChompBtn.MouseButton1Click:Connect(function()
+	if autoEatEnabled then turnOffAutoEat() end
+	chompOnceEnabled
