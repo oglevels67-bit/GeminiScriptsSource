@@ -1,0 +1,578 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local VIM = game:GetService("VirtualInputManager")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "MMM_Autoplay"
+gui.ResetOnSpawn = false
+gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local function applyGradient(parent, color1, color2, rotation)
+    local gradient = Instance.new("UIGradient")
+    gradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, color1),
+        ColorSequenceKeypoint.new(1, color2)
+    }
+    gradient.Rotation = rotation or 45
+    gradient.Parent = parent
+    return gradient
+end
+
+local frame = Instance.new("Frame")
+frame.Parent = gui
+frame.Size = UDim2.new(0, 320, 0, 350)
+frame.Position = UDim2.new(0.5, -160, 0.5, -175)
+frame.BackgroundColor3 = Color3.fromRGB(20, 24, 34)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.ClipsDescendants = true
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 16)
+corner.Parent = frame
+
+local stroke = Instance.new("UIStroke")
+stroke.Parent = frame
+stroke.Color = Color3.fromRGB(60, 68, 95)
+stroke.Thickness = 1.5
+
+applyGradient(frame, Color3.fromRGB(28, 34, 50), Color3.fromRGB(18, 22, 32), 135)
+
+local header = Instance.new("Frame")
+header.Parent = frame
+header.Size = UDim2.new(1, 0, 0, 45)
+header.BackgroundTransparency = 1
+
+local title = Instance.new("TextLabel")
+title.Parent = header
+title.Size = UDim2.new(1, -90, 1, 0)
+title.Position = UDim2.new(0, 15, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "MMM AUTOPLAYER"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 17
+title.TextXAlignment = Enum.TextXAlignment.Left
+
+local minBtn = Instance.new("TextButton")
+minBtn.Parent = header
+minBtn.Size = UDim2.new(0, 28, 0, 28)
+minBtn.Position = UDim2.new(1, -38, 0, 8)
+minBtn.BackgroundColor3 = Color3.fromRGB(55, 65, 95)
+minBtn.Text = "−"
+minBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+minBtn.Font = Enum.Font.GothamBold
+minBtn.TextSize = 18
+minBtn.BorderSizePixel = 0
+
+local minCorner = Instance.new("UICorner")
+minCorner.CornerRadius = UDim.new(0, 8)
+minCorner.Parent = minBtn
+
+local divider = Instance.new("Frame")
+divider.Parent = frame
+divider.Size = UDim2.new(1, -30, 0, 1)
+divider.Position = UDim2.new(0, 15, 0, 45)
+divider.BackgroundColor3 = Color3.fromRGB(50, 60, 85)
+divider.BorderSizePixel = 0
+
+local contentContainer = Instance.new("Frame")
+contentContainer.Parent = frame
+contentContainer.Size = UDim2.new(1, 0, 1, -45)
+contentContainer.Position = UDim2.new(0, 0, 0, 45)
+contentContainer.BackgroundTransparency = 1
+
+local infoCard = Instance.new("Frame")
+infoCard.Parent = contentContainer
+infoCard.Size = UDim2.new(1, -30, 0, 52)
+infoCard.Position = UDim2.new(0, 15, 0, 10)
+infoCard.BackgroundColor3 = Color3.fromRGB(35, 42, 60)
+infoCard.BorderSizePixel = 0
+
+local cardCorner = Instance.new("UICorner")
+cardCorner.CornerRadius = UDim.new(0, 10)
+cardCorner.Parent = infoCard
+
+applyGradient(infoCard, Color3.fromRGB(42, 52, 76), Color3.fromRGB(28, 34, 50), 90)
+
+local configs = Instance.new("TextLabel")
+configs.Parent = infoCard
+configs.Size = UDim2.new(1, -20, 0, 22)
+configs.Position = UDim2.new(0, 10, 0, 5)
+configs.BackgroundTransparency = 1
+configs.Text = "Probably the best autoplayer 😂 🎉"
+configs.TextColor3 = Color3.fromRGB(255, 255, 255)
+configs.Font = Enum.Font.GothamBold
+configs.TextSize = 12
+configs.TextXAlignment = Enum.TextXAlignment.Left
+
+local warning = Instance.new("TextLabel")
+warning.Parent = infoCard
+warning.Size = UDim2.new(1, -20, 0, 18)
+warning.Position = UDim2.new(0, 10, 0, 26)
+warning.BackgroundTransparency = 1
+warning.Text = "Made by Gemini 🤖"
+warning.TextColor3 = Color3.fromRGB(220, 230, 250)
+warning.Font = Enum.Font.GothamMedium
+warning.TextSize = 11
+warning.TextXAlignment = Enum.TextXAlignment.Left
+
+local modeBtn = Instance.new("TextButton")
+modeBtn.Parent = contentContainer
+modeBtn.Size = UDim2.new(1, -30, 0, 36)
+modeBtn.Position = UDim2.new(0, 15, 0, 70)
+modeBtn.BackgroundColor3 = Color3.fromRGB(55, 65, 92)
+modeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+modeBtn.Font = Enum.Font.GothamBold
+modeBtn.TextSize = 12
+modeBtn.Text = "⚡ MODE: BLATANT (High Performance)"
+modeBtn.BorderSizePixel = 0
+
+local modeCorner = Instance.new("UICorner")
+modeCorner.CornerRadius = UDim.new(0, 10)
+modeCorner.Parent = modeBtn
+
+applyGradient(modeBtn, Color3.fromRGB(65, 78, 110), Color3.fromRGB(45, 54, 78), 90)
+
+local toggle = Instance.new("TextButton")
+toggle.Parent = contentContainer
+toggle.Size = UDim2.new(1, -30, 0, 42)
+toggle.Position = UDim2.new(0, 15, 0, 114)
+toggle.BackgroundColor3 = Color3.fromRGB(0, 180, 120)
+toggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggle.Font = Enum.Font.GothamBold
+toggle.TextSize = 14
+toggle.Text = "ACTIVATE ENGINE"
+toggle.BorderSizePixel = 0
+toggle.AutoButtonColor = false
+
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(0, 10)
+btnCorner.Parent = toggle
+
+local toggleGrad = applyGradient(toggle, Color3.fromRGB(0, 220, 145), Color3.fromRGB(0, 160, 105), 90)
+
+local keybindsBtn = Instance.new("TextButton")
+keybindsBtn.Parent = contentContainer
+keybindsBtn.Size = UDim2.new(1, -30, 0, 36)
+keybindsBtn.Position = UDim2.new(0, 15, 0, 164)
+keybindsBtn.BackgroundColor3 = Color3.fromRGB(55, 65, 92)
+keybindsBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+keybindsBtn.Font = Enum.Font.GothamBold
+keybindsBtn.TextSize = 11
+keybindsBtn.Text = "⌨️  VIEW KEYBIND MAPPINGS (4K - 9K)"
+keybindsBtn.BorderSizePixel = 0
+
+local kbCorner = Instance.new("UICorner")
+kbCorner.CornerRadius = UDim.new(0, 10)
+kbCorner.Parent = keybindsBtn
+
+applyGradient(keybindsBtn, Color3.fromRGB(65, 78, 110), Color3.fromRGB(45, 54, 78), 90)
+
+local creditsLabel = Instance.new("TextLabel")
+creditsLabel.Parent = contentContainer
+creditsLabel.Size = UDim2.new(1, -30, 0, 16)
+creditsLabel.Position = UDim2.new(0, 15, 0, 208)
+creditsLabel.BackgroundTransparency = 1
+creditsLabel.Text = "Credits to icaroemanuel2013 on ScriptBlox For the source"
+creditsLabel.TextColor3 = Color3.fromRGB(180, 190, 215)
+creditsLabel.Font = Enum.Font.GothamMedium
+creditsLabel.TextSize = 9
+creditsLabel.TextXAlignment = Enum.TextXAlignment.Center
+
+local statusBg = Instance.new("Frame")
+statusBg.Parent = contentContainer
+statusBg.Size = UDim2.new(1, -30, 0, 30)
+statusBg.Position = UDim2.new(0, 15, 0, 230)
+statusBg.BackgroundColor3 = Color3.fromRGB(30, 36, 52)
+statusBg.BorderSizePixel = 0
+
+local statusCorner = Instance.new("UICorner")
+statusCorner.CornerRadius = UDim.new(0, 8)
+statusCorner.Parent = statusBg
+
+local statusDot = Instance.new("Frame")
+statusDot.Parent = statusBg
+statusDot.Size = UDim2.new(0, 8, 0, 8)
+statusDot.Position = UDim2.new(0, 12, 0.5, -4)
+statusDot.BackgroundColor3 = Color3.fromRGB(180, 185, 210)
+statusDot.BorderSizePixel = 0
+
+local dotCorner = Instance.new("UICorner")
+dotCorner.CornerRadius = UDim.new(1, 0)
+dotCorner.Parent = statusDot
+
+local status = Instance.new("TextLabel")
+status.Parent = statusBg
+status.Size = UDim2.new(1, -30, 1, 0)
+status.Position = UDim2.new(0, 28, 0, 0)
+status.BackgroundTransparency = 1
+status.Text = "Standby..."
+status.TextColor3 = Color3.fromRGB(255, 255, 255)
+status.Font = Enum.Font.GothamMedium
+status.TextSize = 12
+status.TextXAlignment = Enum.TextXAlignment.Left
+
+local kbFrame = Instance.new("Frame")
+kbFrame.Parent = gui
+kbFrame.Size = UDim2.new(0, 280, 0, 260)
+kbFrame.Position = UDim2.new(0.5, 170, 0.5, -130)
+kbFrame.BackgroundColor3 = Color3.fromRGB(20, 24, 34)
+kbFrame.BorderSizePixel = 0
+kbFrame.Visible = false
+kbFrame.Active = true
+
+local kbFrameCorner = Instance.new("UICorner")
+kbFrameCorner.CornerRadius = UDim.new(0, 14)
+kbFrameCorner.Parent = kbFrame
+
+local kbFrameStroke = Instance.new("UIStroke")
+kbFrameStroke.Parent = kbFrame
+kbFrameStroke.Color = Color3.fromRGB(60, 68, 95)
+kbFrameStroke.Thickness = 1.5
+
+applyGradient(kbFrame, Color3.fromRGB(28, 34, 50), Color3.fromRGB(18, 22, 32), 135)
+
+local kbHeader = Instance.new("TextLabel")
+kbHeader.Parent = kbFrame
+kbHeader.Size = UDim2.new(1, -40, 0, 38)
+kbHeader.Position = UDim2.new(0, 15, 0, 0)
+kbHeader.BackgroundTransparency = 1
+kbHeader.Text = "KEYBIND LAYOUTS"
+kbHeader.TextColor3 = Color3.fromRGB(255, 255, 255)
+kbHeader.Font = Enum.Font.GothamBold
+kbHeader.TextSize = 14
+kbHeader.TextXAlignment = Enum.TextXAlignment.Left
+
+local kbClose = Instance.new("TextButton")
+kbClose.Parent = kbFrame
+kbClose.Size = UDim2.new(0, 24, 0, 24)
+kbClose.Position = UDim2.new(1, -32, 0, 7)
+kbClose.BackgroundColor3 = Color3.fromRGB(55, 35, 42)
+kbClose.Text = "X"
+kbClose.TextColor3 = Color3.fromRGB(255, 110, 110)
+kbClose.Font = Enum.Font.GothamBold
+kbClose.TextSize = 13
+kbClose.BorderSizePixel = 0
+
+local kbCloseCorner = Instance.new("UICorner")
+kbCloseCorner.CornerRadius = UDim.new(0, 6)
+kbCloseCorner.Parent = kbClose
+
+local kbScroll = Instance.new("ScrollingFrame")
+kbScroll.Parent = kbFrame
+kbScroll.Size = UDim2.new(1, -20, 1, -48)
+kbScroll.Position = UDim2.new(0, 10, 0, 40)
+kbScroll.BackgroundTransparency = 1
+kbScroll.BorderSizePixel = 0
+kbScroll.ScrollBarThickness = 4
+kbScroll.ScrollBarImageColor3 = Color3.fromRGB(80, 95, 130)
+kbScroll.CanvasSize = UDim2.new(0, 0, 0, 210)
+
+local kbLayout = Instance.new("UIListLayout")
+kbLayout.Parent = kbScroll
+kbLayout.SortOrder = Enum.SortOrder.LayoutOrder
+kbLayout.Padding = UDim.new(0, 6)
+
+local mappingsList = {
+    {"4K", "D  |  F  |  J  |  K"},
+    {"5K", "D  |  F  |  Space  |  J  |  K"},
+    {"6K", "S  |  D  |  F  |  J  |  K  |  L"},
+    {"7K", "S  |  D  |  F  |  Space  |  J  |  K  |  L"},
+    {"8K", "A  |  S  |  D  |  F  |  H  |  J  |  K  |  L"},
+    {"9K", "A  |  S  |  D  |  F  |  Space  |  H  |  J  |  K  |  L"}
+}
+
+for i, map in ipairs(mappingsList) do
+    local card = Instance.new("Frame")
+    card.Parent = kbScroll
+    card.Size = UDim2.new(1, -8, 0, 28)
+    card.BackgroundColor3 = Color3.fromRGB(38, 46, 66)
+    card.BorderSizePixel = 0
+    
+    local cCorner = Instance.new("UICorner")
+    cCorner.CornerRadius = UDim.new(0, 6)
+    cCorner.Parent = card
+    
+    local tag = Instance.new("TextLabel")
+    tag.Parent = card
+    tag.Size = UDim2.new(0, 35, 1, 0)
+    tag.Position = UDim2.new(0, 8, 0, 0)
+    tag.BackgroundTransparency = 1
+    tag.Text = map[1]
+    tag.TextColor3 = Color3.fromRGB(0, 225, 255)
+    tag.Font = Enum.Font.GothamBold
+    tag.TextSize = 11
+    tag.TextXAlignment = Enum.TextXAlignment.Left
+    
+    local keys = Instance.new("TextLabel")
+    keys.Parent = card
+    keys.Size = UDim2.new(1, -48, 1, 0)
+    keys.Position = UDim2.new(0, 42, 0, 0)
+    keys.BackgroundTransparency = 1
+    keys.Text = map[2]
+    keys.TextColor3 = Color3.fromRGB(240, 245, 255)
+    keys.Font = Enum.Font.GothamMedium
+    keys.TextSize = 10
+    keys.TextXAlignment = Enum.TextXAlignment.Left
+end
+
+local function makeDraggable(targetFrame)
+    local dragging, dragStart, startPos = false, nil, nil
+    targetFrame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = targetFrame.Position
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            targetFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+end
+
+makeDraggable(frame)
+makeDraggable(kbFrame)
+
+local isMinimized = false
+minBtn.MouseButton1Click:Connect(function()
+    isMinimized = not isMinimized
+    if isMinimized then
+        contentContainer.Visible = false
+        frame:TweenSize(UDim2.new(0, 320, 0, 45), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, 0.25, true)
+        minBtn.Text = "+"
+    else
+        frame:TweenSize(UDim2.new(0, 320, 0, 350), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, 0.25, true)
+        task.wait(0.15)
+        contentContainer.Visible = true
+        minBtn.Text = "−"
+    end
+end)
+
+keybindsBtn.MouseButton1Click:Connect(function()
+    kbFrame.Visible = not kbFrame.Visible
+end)
+
+kbClose.MouseButton1Click:Connect(function()
+    kbFrame.Visible = false
+end)
+
+local isLegitMode = false
+modeBtn.MouseButton1Click:Connect(function()
+    isLegitMode = not isLegitMode
+    if isLegitMode then
+        modeBtn.Text = "🎯 MODE: LEGIT (Humanized Timing)"
+    else
+        modeBtn.Text = "⚡ MODE: BLATANT (High Performance)"
+    end
+end)
+
+local playing = false
+local ActiveTrackers = {}
+local HeldKeys = {}
+local Connections = {}
+
+local KeyLayouts = {
+    [4] = { Enum.KeyCode.D, Enum.KeyCode.F, Enum.KeyCode.J, Enum.KeyCode.K },
+    [5] = { Enum.KeyCode.D, Enum.KeyCode.F, Enum.KeyCode.Space, Enum.KeyCode.J, Enum.KeyCode.K },
+    [6] = { Enum.KeyCode.S, Enum.KeyCode.D, Enum.KeyCode.F, Enum.KeyCode.J, Enum.KeyCode.K, Enum.KeyCode.L },
+    [7] = { Enum.KeyCode.S, Enum.KeyCode.D, Enum.KeyCode.F, Enum.KeyCode.Space, Enum.KeyCode.J, Enum.KeyCode.K, Enum.KeyCode.L },
+    [8] = { Enum.KeyCode.A, Enum.KeyCode.S, Enum.KeyCode.D, Enum.KeyCode.F, Enum.KeyCode.H, Enum.KeyCode.J, Enum.KeyCode.K, Enum.KeyCode.L },
+    [9] = { Enum.KeyCode.A, Enum.KeyCode.S, Enum.KeyCode.D, Enum.KeyCode.F, Enum.KeyCode.Space, Enum.KeyCode.H, Enum.KeyCode.J, Enum.KeyCode.K, Enum.KeyCode.L }
+}
+
+local function releaseKey(key)
+    if not key or not HeldKeys[key] then return end
+    HeldKeys[key] = nil
+    VIM:SendKeyEvent(false, key, false, game)
+end
+
+local function holdKey(key)
+    if not key or HeldKeys[key] then return end
+    HeldKeys[key] = true
+    VIM:SendKeyEvent(true, key, false, game)
+end
+
+local function tapKey(key)
+    if not key then return end
+    if HeldKeys[key] then releaseKey(key) end
+    VIM:SendKeyEvent(true, key, false, game)
+    task.delay(0.016, function()
+        VIM:SendKeyEvent(false, key, false, game)
+    end)
+end
+
+local function releaseAllKeys()
+    for key, _ in pairs(HeldKeys) do
+        VIM:SendKeyEvent(false, key, false, game)
+    end
+    HeldKeys = {}
+end
+
+local function getSortedColumns(container)
+    local children = container:GetChildren()
+    local t = {}
+    for _, v in pairs(children) do
+        if v:IsA("GuiObject") or v:IsA("Folder") or v:IsA("Configuration") then
+            table.insert(t, v)
+        end
+    end
+    table.sort(t, function(a, b)
+        local numA = tonumber(a.Name)
+        local numB = tonumber(b.Name)
+        if numA and numB then return numA < numB end
+        return a.AbsolutePosition.X < b.AbsolutePosition.X
+    end)
+    return t
+end
+
+local function stopAutoplay()
+    playing = false
+    for _, conn in pairs(Connections) do
+        pcall(function() conn:Disconnect() end)
+    end
+    Connections = {}
+    ActiveTrackers = {}
+    releaseAllKeys()
+    
+    toggle.Text = "ACTIVATE ENGINE"
+    toggleGrad.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 220, 145)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 160, 105))
+    }
+    status.Text = "Standby..."
+    status.TextColor3 = Color3.fromRGB(255, 255, 255)
+    statusDot.BackgroundColor3 = Color3.fromRGB(180, 185, 210)
+end
+
+local function startAutoplay()
+    if playing then return end
+
+    local arrowGui = nil  
+    for _, obj in ipairs(LocalPlayer.PlayerGui:GetDescendants()) do  
+        if obj.Name == "ArrowGui" then  
+            arrowGui = obj  
+            break  
+        end  
+    end  
+      
+    if not arrowGui then  
+        status.Text = "Waiting for match..."  
+        statusDot.BackgroundColor3 = Color3.fromRGB(240, 175, 55)
+        return  
+    end  
+      
+    local side = "Right"  
+    for _, v in pairs(game.ReplicatedStorage.Matches:GetChildren()) do  
+        if v.Owner.Value == LocalPlayer then  
+            side = v.Owner.PlayerType.Value == 1 and "Left" or "Right"  
+            break  
+        elseif v.Opponent.Value == LocalPlayer then  
+            side = v.Opponent.PlayerType.Value == 1 and "Left" or "Right"  
+            break  
+        end  
+    end  
+      
+    local G = arrowGui[side] or arrowGui["Right"] or arrowGui["Left"]  
+    if not G then return end  
+
+    RunService.RenderStepped:Wait()
+      
+    local noteHolders = getSortedColumns(G.Notes)  
+    local longHolders = getSortedColumns(G.LongNotes)  
+    local receptors = getSortedColumns(G.MainArrowContainer)  
+    
+    local keyCount = #noteHolders
+    local keyMap = KeyLayouts[keyCount] or KeyLayouts[4]
+    
+    playing = true  
+    toggle.Text = "STOP ENGINE"  
+    toggleGrad.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(245, 70, 70)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(185, 45, 45))
+    }
+    
+    local modeName = isLegitMode and "Legit" or "Blatant"
+    status.Text = "Running (" .. modeName .. " • " .. keyCount .. "K • " .. side .. ")"  
+    status.TextColor3 = Color3.fromRGB(0, 245, 160)  
+    statusDot.BackgroundColor3 = Color3.fromRGB(0, 245, 160)
+
+    for i, holder in ipairs(noteHolders) do
+        if i > #keyMap then break end
+        local keyCode = keyMap[i]
+        local receptor = receptors[i]
+        local longContainer = longHolders[i]
+
+        if keyCode and receptor then
+            local conn = holder.ChildAdded:Connect(function(note)
+                table.insert(ActiveTrackers, {
+                    note = note,
+                    keyCode = keyCode,
+                    receptor = receptor,
+                    longContainer = longContainer,
+                    holding = false
+                })
+            end)
+            table.insert(Connections, conn)
+        end
+    end
+
+    local masterConn = RunService.RenderStepped:Connect(function()
+        if not playing then return end
+
+        for i = #ActiveTrackers, 1, -1 do
+            local track = ActiveTrackers[i]
+            local note = track.note
+
+            if not note or not note.Parent then
+                if track.holding then
+                    releaseKey(track.keyCode)
+                end
+                table.remove(ActiveTrackers, i)
+            else
+                local receptorY = track.receptor.AbsolutePosition.Y
+                local noteY = note.AbsolutePosition.Y
+
+                if not track.holding then
+                    local shouldHit = false
+                    if isLegitMode then
+                        local dist = receptorY - noteY
+                        if dist <= 28 and dist >= -10 then
+                            shouldHit = true
+                        end
+                    else
+                        local dist = receptorY - noteY
+                        if dist <= 18 or noteY >= receptorY then
+                            shouldHit = true
+                        end
+                    end
+
+                    if shouldHit then
+                        local isLong = track.longContainer:FindFirstChildWhichIsA("GuiObject") ~= nil
+                        if isLong then
+                            holdKey(track.keyCode)
+                            track.holding = true
+                        else
+                            tapKey(track.keyCode)
+                            table.remove(ActiveTrackers, i)
+                        end
+                    end
+                else
+                    local body = track.longContainer:FindFirstChildWhichIsA("GuiObject")
+                    local shouldRelease = false
+
+                    if not body or body.Parent ~= track.longContainer then
+                        shouldRelease = true
+                    else
+                        local bodyBottom = body.AbsolutePosition.Y + body.AbsoluteSize.Y
+  
