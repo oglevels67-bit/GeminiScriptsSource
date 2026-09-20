@@ -575,4 +575,26 @@ local function startAutoplay()
                         shouldRelease = true
                     else
                         local bodyBottom = body.AbsolutePosition.Y + body.AbsoluteSize.Y
+if bodyBottom < receptorY then
+shouldRelease = true
+end
+end
+if shouldRelease then
+releaseKey(track.keyCode)
+table.remove(ActiveTrackers, i)
+end
+end
+end
+end
+end)
+table.insert(Connections, masterConn)
+end
+toggle.MouseButton1Click:Connect(function()
+if playing then
+stopAutoplay()
+else
+task.spawn(startAutoplay)
+end
+end)
+LocalPlayer.OnTeleport:Connect(stopAutoplay)
   
