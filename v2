@@ -1,0 +1,447 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local VIM = game:GetService("VirtualInputManager")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+
+----------------------------------------------------
+-- LOAD RAYFIELD GEN2 LIBRARY
+----------------------------------------------------
+local Rayfield = loadstring(game:HttpGet("https://sirius.menu/gen2"))()
+
+----------------------------------------------------
+-- STATE & CONFIGURATION VARIABLES
+----------------------------------------------------
+local playing = false
+local isLegitMode = false
+local accuracyValue = 75
+local HeldKeys = {}
+local Connections = {}
+
+local KeyLayouts = {
+    [4] = { Enum.KeyCode.D, Enum.KeyCode.F, Enum.KeyCode.J, Enum.KeyCode.K },
+    [5] = { Enum.KeyCode.D, Enum.KeyCode.F, Enum.KeyCode.Space, Enum.KeyCode.J, Enum.KeyCode.K },
+    [6] = { Enum.KeyCode.S, Enum.KeyCode.D, Enum.KeyCode.F, Enum.KeyCode.J, Enum.KeyCode.K, Enum.KeyCode.L },
+    [7] = { Enum.KeyCode.S, Enum.KeyCode.D, Enum.KeyCode.F, Enum.KeyCode.Space, Enum.KeyCode.J, Enum.KeyCode.K, Enum.KeyCode.L },
+    [8] = { Enum.KeyCode.A, Enum.KeyCode.S, Enum.KeyCode.D, Enum.KeyCode.F, Enum.KeyCode.H, Enum.KeyCode.J, Enum.KeyCode.K, Enum.KeyCode.L },
+    [9] = { Enum.KeyCode.A, Enum.KeyCode.S, Enum.KeyCode.D, Enum.KeyCode.F, Enum.KeyCode.Space, Enum.KeyCode.H, Enum.KeyCode.J, Enum.KeyCode.K, Enum.KeyCode.L }
+}
+
+----------------------------------------------------
+-- GAUSSIAN HUMAN TIMING GENERATOR
+----------------------------------------------------
+local function randomGaussian(mean, stdDev)
+    local u1 = math.max(math.random(), 1e-7)
+    local u2 = math.random()
+    local z0 = math.sqrt(-2.0 * math.log(u1)) * math.cos(2.0 * math.pi * u2)
+    return mean + z0 * stdDev
+end
+
+local function GetHumanizedTimingOffsetSeconds(accuracy)
+    local meanOffsetMs = 0
+    local stdDevMs = 0
+
+    if accuracy >= 75 then
+        local factor = (100 - accuracy) / 25
+        meanOffsetMs = -5 * factor
+        stdDevMs = 12 + (factor * 12)
+    elseif accuracy >= 50 then
+        local factor = (74 - accuracy) / 24
+        meanOffsetMs = -35 - (factor * 20)
+        stdDevMs = 22 + (factor * 12)
+    elseif accuracy >= 25 then
+        local factor = (49 - accuracy) / 24
+        meanOffsetMs = -75 - (factor * 30)
+        stdDevMs = 30 + (factor * 15)
+    else
+        local factor = (24 - accuracy) / 24
+        meanOffsetMs = -125 - (factor * 40)
+        stdDevMs = 40 + (factor * 20)
+    end
+
+    local sampledMs = randomGaussian(meanOffsetMs, stdDevMs)
+    return sampledMs / 1000
+end
+
+----------------------------------------------------
+-- INPUT & MATCH HELPERS
+----------------------------------------------------
+local function releaseKey(key)
+    if not key or not HeldKeys[key] then return end
+    HeldKeys[key] = nil
+    VIM:SendKeyEvent(false, key, false, game)
+end
+
+local function holdKey(key)
+    if not key or HeldKeys[key] then return end
+    HeldKeys[key] = true
+    VIM:SendKeyEvent(true, key, false, game)
+end
+
+local function tapKey(key)
+    if not key then return end
+    if HeldKeys[key] then releaseKey(key) end
+    VIM:SendKeyEvent(true, key, false, game)
+    task.wait(0.016)
+    VIM:SendKeyEvent(false, key, false, game)
+end
+
+local function releaseAllKeys()
+    for key, _ in pairs(HeldKeys) do
+        VIM:SendKeyEvent(false, key, false, game)
+    end
+    HeldKeys = {}
+end
+
+local function getSortedColumns(container)
+    local children = container:GetChildren()
+    local t = {}
+    for _, v in pairs(children) do
+        if v:IsA("GuiObject") or v:IsA("Folder") or v:IsA("Configuration") then
+            table.insert(t, v)
+        end
+    end
+    table.sort(t, function(a, b)
+        local numA = tonumber(a.Name)
+        local numB = tonumber(b.Name)
+        if numA and numB then return numA < numB end
+        return a.AbsolutePosition.X < b.AbsolutePosition.X
+    end)
+    return t
+end
+
+local function isPlayerInActiveMatch()
+    local arrowGui = nil  
+    for _, obj in ipairs(LocalPlayer.PlayerGui:GetDescendants()) do  
+        if obj.Name == "ArrowGui" then  
+            arrowGui = obj  
+            break  
+        end  
+    end  
+      
+    if not arrowGui then return false, nil, nil end
+
+    local side = nil
+    local matchesFolder = game:GetService("ReplicatedStorage"):FindFirstChild("Matches")
+    if matchesFolder then
+        for _, match in pairs(matchesFolder:GetChildren()) do  
+            if match:FindFirstChild("Owner") and match.Owner.Value == LocalPlayer then  
+                side = (match.Owner:FindFirstChild("PlayerType") and match.Owner.PlayerType.Value == 1) and "Left" or "Right"  
+                break  
+            elseif match:FindFirstChild("Opponent") and match.Opponent.Value == LocalPlayer then  
+                side = (match.Opponent:FindFirstChild("PlayerType") and match.Opponent.PlayerType.Value == 1) and "Left" or "Right"  
+                break  
+            end  
+        end  
+    end
+
+    if not side then
+        side = arrowGui:FindFirstChild("Right") and "Right" or "Left"
+    end
+
+    local G = arrowGui:FindFirstChild(side) or arrowGui:FindFirstChild("Right") or arrowGui:FindFirstChild("Left")
+    if not G then return false, nil, nil end
+
+    return true, G, side
+end
+----------------------------------------------------
+-- CREATE RAYFIELD GEN2 WINDOW & TABS
+----------------------------------------------------
+local window = Rayfield:CreateWindow({
+    name = "MMM Autoplayer",
+    subtitle = "Rayfield Gen2 Edition",
+    sidebarLayout = true,
+    theme = "cobalt",
+    configuration = {
+        enabled = true,
+        fileName = "MMM_Autoplayer_Config"
+    },
+    autoSave = true,
+    autoLoad = true
+})
+
+window:CreateTag({
+    text = "v2.0 Gen2",
+    color = Color3.fromRGB(0, 225, 255)
+})
+
+local mainTab = window:CreateTab({
+    name = "Main Engine",
+    icon = 93364949241311
+})
+
+local configTab = window:CreateTab({
+    name = "Keybind Layouts",
+    icon = 93364949241311
+})
+
+----------------------------------------------------
+-- ENGINE CONTROL DECLARATION
+----------------------------------------------------
+local toggleEngineHandle = nil
+
+local function stopAutoplay()
+    playing = false
+    for _, conn in pairs(Connections) do
+        pcall(function() conn:Disconnect() end)
+    end
+    Connections = {}
+    releaseAllKeys()
+    
+    if toggleEngineHandle then
+        toggleEngineHandle:Set(false, true)
+    end
+    
+    window:Notify({
+        title = "Autoplayer Halted",
+        content = "Engine returned to standby mode.",
+        duration = 3
+    })
+end
+
+local function startAutoplay()
+    if playing then return end
+
+    local inMatch, G, side = isPlayerInActiveMatch()
+    if not inMatch then  
+        window:Notify({
+            title = "Match Not Found",
+            content = "You must be inside an active game match to run the engine.",
+            duration = 4
+        })
+        if toggleEngineHandle then 
+            toggleEngineHandle:Set(false, true) 
+        end
+        return  
+    end  
+
+    RunService.RenderStepped:Wait()
+      
+    local noteHolders = getSortedColumns(G.Notes)  
+    local longHolders = getSortedColumns(G.LongNotes)  
+    local receptors = getSortedColumns(G.MainArrowContainer)  
+    
+    local keyCount = #noteHolders
+    local keyMap = KeyLayouts[keyCount] or KeyLayouts[4]
+    
+    playing = true  
+    
+    local modeName = isLegitMode and "Legit" or "Blatant"
+    window:Notify({
+        title = "Engine Activated",
+        content = "Running (" .. modeName .. " • " .. keyCount .. "K • " .. side .. " Side)",
+        duration = 4
+    })
+
+    task.spawn(function()
+        while playing do
+            task.wait(0.5)
+            local stillInMatch = isPlayerInActiveMatch()
+            if not stillInMatch and playing then
+                stopAutoplay()
+                break
+            end
+        end
+    end)
+
+    for i, holder in ipairs(noteHolders) do
+        if i > #keyMap then break end
+        local keyCode = keyMap[i]
+        local receptor = receptors[i]
+        local longContainer = longHolders[i]
+
+        if keyCode and receptor then
+            local conn = holder.ChildAdded:Connect(function(note)
+                task.spawn(function()
+                    if not isLegitMode then
+                        while note and note.Parent and playing do
+                            local success, diff = pcall(function()
+                                return (receptor.AbsolutePosition - note.AbsolutePosition).Magnitude
+                            end)
+                            if not success or diff <= 25 then break end
+                            RunService.RenderStepped:Wait()
+                        end
+                    else
+                        local initialY = note.AbsolutePosition.Y
+                        local lastY = initialY
+                        local velocityY = 0
+                        local targetY = receptor.AbsolutePosition.Y
+
+                        for _ = 1, 2 do
+                            RunService.RenderStepped:Wait()
+                            if not note or not note.Parent then return end
+                            local currY = note.AbsolutePosition.Y
+                            velocityY = currY - lastY
+                            lastY = currY
+                        end
+
+                        if velocityY <= 0 then velocityY = 15 end
+
+                        local humanOffsetSec = GetHumanizedTimingOffsetSeconds(accuracyValue)
+
+                        while note and note.Parent and playing do
+                            local currY = note.AbsolutePosition.Y
+                            local distPixels = targetY - currY
+                            local timeToTargetSec = distPixels / (velocityY * 60)
+
+                            if timeToTargetSec <= humanOffsetSec then
+                                break
+                            end
+                            RunService.RenderStepped:Wait()
+                        end
+                    end
+
+                    if not playing or not note or not note.Parent then return end
+
+                    if HeldKeys[keyCode] then
+                        releaseKey(keyCode)
+                    end
+
+                    local isLongNote = false
+                    pcall(function()
+                        local body = longContainer:FindFirstChildWhichIsA("GuiObject")
+                        if body then isLongNote = true end
+                    end)
+
+                    if isLongNote then
+                        holdKey(keyCode)
+                        while playing do
+                            local shouldBreak = false
+                            pcall(function()
+                                local body = longContainer:FindFirstChildWhichIsA("GuiObject")
+                                if not body or body.Parent ~= longContainer then
+                                    shouldBreak = true
+                                else
+                                    local bodyBottom = body.AbsolutePosition.Y + body.AbsoluteSize.Y
+                                    if bodyBottom < receptor.AbsolutePosition.Y then
+                                        shouldBreak = true
+                                    end
+                                end
+                            end)
+                            if shouldBreak then break end
+                            RunService.RenderStepped:Wait()
+                        end
+                        releaseKey(keyCode)
+                    else
+                        tapKey(keyCode)
+                    end
+                end)
+            end)
+            table.insert(Connections, conn)
+        end
+    end
+end
+
+----------------------------------------------------
+-- MAIN TAB UI ELEMENTS
+----------------------------------------------------
+mainTab:CreateSection({
+    name = "Engine Controls"
+})
+
+toggleEngineHandle = mainTab:CreateToggle({
+    name = "Activate Autoplayer",
+    description = "Turn the key input detection loop on or off",
+    flag = "AutoplayerEnabled",
+    callback = function(state)
+        if state then
+            if not playing then
+                task.spawn(startAutoplay)
+            end
+        else
+            if playing then
+                stopAutoplay()
+            end
+        end
+    end
+})
+
+mainTab:CreateDropdown({
+    name = "Engine Mode",
+    description = "Switch between perfect hits and humanized timing curve",
+    options = {
+        "Blatant (100% Sick)",
+        "Legit (Gaussian Timing)"
+    },
+    value = "Blatant (100% Sick)",
+    flag = "EngineMode",
+    callback = function(selected)
+        local mode = type(selected) == "table" and selected[1] or selected
+        if mode == "Legit (Gaussian Timing)" then
+            isLegitMode = true
+        else
+            isLegitMode = false
+        end
+    end
+})
+
+mainTab:CreateSlider({
+    name = "Legit Accuracy Target",
+    description = "Controls standard deviation for timing offset variance",
+    range = {1, 100},
+    increment = 1,
+    value = 75,
+    suffix = "%",
+    flag = "LegitAccuracy",
+    callback = function(val)
+        accuracyValue = val
+    end
+})
+
+mainTab:CreateDivider({
+    text = "Information"
+})
+
+mainTab:CreateText({
+    name = "Configuration Tip",
+    text = "Best Legit setting is around 74% - 75% accuracy to maintain natural play distribution without flagging anticheat."
+})
+
+----------------------------------------------------
+-- KEYBIND LAYOUTS TAB UI ELEMENTS
+----------------------------------------------------
+configTab:CreateSection({
+    name = "Dynamic Layout Mappings"
+})
+
+configTab:CreateText({
+    name = "Supported Mappings",
+    text = "Keymaps dynamically adapt depending on match key count (4K through 9K)."
+})
+
+configTab:CreateDivider()
+
+configTab:CreateText({
+    name = "4K Layout",
+    text = "D  |  F  |  J  |  K"
+})
+
+configTab:CreateText({
+    name = "5K Layout",
+    text = "D  |  F  |  Space  |  J  |  K"
+})
+
+configTab:CreateText({
+    name = "6K Layout",
+    text = "S  |  D  |  F  |  J  |  K  |  L"
+})
+
+configTab:CreateText({
+    name = "7K Layout",
+    text = "S  |  D  |  F  |  Space  |  J  |  K  |  L"
+})
+
+configTab:CreateText({
+    name = "8K Layout",
+    text = "A  |  S  |  D  |  F  |  H  |  J  |  K  |  L"
+})
+
+configTab:CreateText({
+    name = "9K Layout",
+    text = "A  |  S  |  D  |  F  |  Space  |  H  |  J  |  K  |  L"
+})
+
+----------------------------------------------------
+-- CLEANUP ON TELEPORT
+----------------------------------------------------
+LocalPlayer.OnTeleport:Connect(stopAutoplay)
